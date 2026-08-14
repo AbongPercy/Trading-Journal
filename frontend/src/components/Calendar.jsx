@@ -16,6 +16,13 @@ export default function Calendar({ year, month, trades, onAddTrade, onSelectTrad
     (tradesByDate[trade.date] ||= []).push(trade);
   }
 
+  // Newest trade goes to the top of the day; older trades move down.
+  for (const date in tradesByDate) {
+    tradesByDate[date].sort(
+      (a, b) => createdMs(b) - createdMs(a) || (b.id || 0) - (a.id || 0),
+    );
+  }
+
   const cells = buildMonthCells(year, month);
 
   return (
@@ -44,4 +51,10 @@ export default function Calendar({ year, month, trades, onAddTrade, onSelectTrad
       </div>
     </div>
   );
+}
+
+// Creation timestamp in ms; falls back to 0 so missing values sort last
+function createdMs(trade) {
+  const ms = trade.createdAt ? new Date(trade.createdAt).getTime() : NaN;
+  return Number.isNaN(ms) ? 0 : ms;
 }
