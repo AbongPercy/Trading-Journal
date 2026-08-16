@@ -13,7 +13,6 @@ export default function MonthStats({ stats, title }) {
         <Stat label="Total Trades" value={stats.totalTrades} />
         <Stat label="Wins" value={stats.wins} accent="win" />
         <Stat label="Losses" value={stats.losses} accent="loss" />
-        <Stat label="Still Open" value={stats.open} accent="open" />
         <Stat label="Total P&L" value={formatPnl(stats.totalPnl)} accent={pnlAccent(stats.totalPnl)} />
         <Stat label="Win Rate" value={`${stats.winRate}%`} />
         <Stat

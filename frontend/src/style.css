@@ -141,6 +141,16 @@ body {
   cursor: not-allowed;
 }
 
+.btn.danger {
+  background: rgba(231, 76, 60, 0.15);
+  border-color: var(--loss);
+  color: var(--loss);
+}
+
+.btn.danger:hover {
+  background: rgba(231, 76, 60, 0.25);
+}
+
 /* ---------- Monthly stats bar ---------- */
 .stats-wrap {
   margin-bottom: 16px;
@@ -416,6 +426,7 @@ label textarea,
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
+  flex-wrap: wrap;
 }
 
 /* ---------- Trade details ---------- */

@@ -51,6 +51,20 @@ export function createTrade(payload) {
   });
 }
 
+// PATCH /api/trades/:id  (edits the trade details, never the result)
+export function updateTrade(id, payload) {
+  return request(`${BASE}/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+// DELETE /api/trades/:id
+export function deleteTrade(id) {
+  return request(`${BASE}/${id}`, { method: 'DELETE' });
+}
+
 // PATCH /api/trades/:id/close
 export function closeTrade(id, payload) {
   return request(`${BASE}/${id}/close`, {

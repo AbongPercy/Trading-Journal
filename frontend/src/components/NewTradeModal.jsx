@@ -8,25 +8,45 @@ import {
 } from '../constants.js';
 
 /**
- * Modal form for logging a new trade. All fields are required.
+ * Modal form for logging a new trade (or editing an existing one when
+ * initialTrade is passed). All fields are required.
  * Submits to the backend via the onSave callback provided by App.
  */
-export default function NewTradeModal({ defaultDate, onSave, onClose }) {
+export default function NewTradeModal({ defaultDate, initialTrade, onSave, onClose }) {
   // Today's date in the user's local timezone (YYYY-MM-DD),
   // used when no specific day was clicked.
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-  const [form, setForm] = useState({
-    date: defaultDate || todayString,
-    timeTaken: '09:00',
-    currencyPair: '',
-    direction: 'Buy',
-    lotSize: '',
-    riskRewardRatio: '1:2',
-    customRatio: '',
-    reason: '',
+  const isEdit = Boolean(initialTrade);
+
+  const [form, setForm] = useState(() => {
+    // Editing: pre-fill the form with the trade's current values
+    if (initialTrade) {
+      const ratio = initialTrade.riskRewardRatio;
+      const isPreset = RISK_REWARD_OPTIONS.includes(ratio);
+      return {
+        date: initialTrade.date,
+        timeTaken: initialTrade.timeTaken,
+        currencyPair: initialTrade.currencyPair,
+        direction: capitalize(initialTrade.direction),
+        lotSize: String(initialTrade.lotSize),
+        riskRewardRatio: isPreset ? ratio : RISK_REWARD_OTHER,
+        customRatio: isPreset ? '' : ratio,
+        reason: initialTrade.reason || '',
+      };
+    }
+    return {
+      date: defaultDate || todayString,
+      timeTaken: '09:00',
+      currencyPair: '',
+      direction: 'Buy',
+      lotSize: '',
+      riskRewardRatio: '1:2',
+      customRatio: '',
+      reason: '',
+    };
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -84,7 +104,7 @@ export default function NewTradeModal({ defaultDate, onSave, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <h3>New Trade</h3>
+        <h3>{isEdit ? 'Edit Trade' : 'New Trade'}</h3>
 
         <form onSubmit={handleSubmit}>
           <div className="form-row">
@@ -188,11 +208,16 @@ export default function NewTradeModal({ defaultDate, onSave, onClose }) {
           <div className="modal-actions">
             <button type="button" className="btn" onClick={onClose} disabled={saving}>Cancel</button>
             <button type="submit" className="btn primary" disabled={saving}>
-              {saving ? 'Saving…' : 'Log Trade'}
+              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Log Trade'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
+}
+
+// "buy" -> "Buy" (the form stores directions capitalized)
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

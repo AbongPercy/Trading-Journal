@@ -10,6 +10,8 @@ import {
   fetchTradesYear,
   fetchYearStats,
   createTrade,
+  updateTrade,
+  deleteTrade,
   closeTrade,
 } from './api.js';
 
@@ -38,6 +40,7 @@ export default function App() {
   // Modal state
   const [newTradeOpen, setNewTradeOpen] = useState(false);
   const [newTradeDefaultDate, setNewTradeDefaultDate] = useState(null);
+  const [editingTrade, setEditingTrade] = useState(null);
   const [selectedTrade, setSelectedTrade] = useState(null);
 
   // "2026-08" - the month string used by the Month view API calls
@@ -125,10 +128,37 @@ export default function App() {
     setView('month');
   }
 
-  // Called by the New Trade form once it's valid
-  async function handleCreateTrade(payload) {
-    await createTrade(payload); // throws if the backend rejects it
+  // Opens the New/Edit Trade modal (optionally pre-filling the chosen day)
+  function openNewTrade(dateString) {
+    setEditingTrade(null);
+    setNewTradeDefaultDate(dateString);
+    setNewTradeOpen(true);
+  }
+
+  // Called by the New/Edit Trade form once it's valid
+  async function handleSaveTrade(payload) {
+    if (editingTrade) {
+      await updateTrade(editingTrade.id, payload); // throws if the backend rejects it
+    } else {
+      await createTrade(payload); // throws if the backend rejects it
+    }
     setNewTradeOpen(false);
+    setEditingTrade(null);
+    await refresh();
+  }
+
+  // Called by the details modal's Edit button
+  function handleEditTrade(trade) {
+    setSelectedTrade(null); // close the details modal first
+    setEditingTrade(trade);
+    setNewTradeDefaultDate(null);
+    setNewTradeOpen(true);
+  }
+
+  // Called by the details modal once the user confirmed the deletion
+  async function handleDeleteTrade(id) {
+    await deleteTrade(id); // throws if the backend rejects it
+    setSelectedTrade(null);
     await refresh();
   }
 
@@ -175,10 +205,7 @@ export default function App() {
             <button className="btn" onClick={goToToday}>Today</button>
             <button
               className="btn primary new-trade-btn"
-              onClick={() => {
-                setNewTradeDefaultDate(null); // default to today
-                setNewTradeOpen(true);
-              }}
+              onClick={() => openNewTrade(null)}
             >
               + New Trade
             </button>
@@ -195,10 +222,7 @@ export default function App() {
               year={year}
               month={month}
               trades={trades}
-              onAddTrade={(dateString) => {
-                setNewTradeDefaultDate(dateString); // pre-fill the chosen day
-                setNewTradeOpen(true);
-              }}
+              onAddTrade={openNewTrade}
               onSelectTrade={setSelectedTrade}
             />
           )}
@@ -212,10 +236,7 @@ export default function App() {
             <button className="btn" onClick={goToToday}>Today</button>
             <button
               className="btn primary new-trade-btn"
-              onClick={() => {
-                setNewTradeDefaultDate(null);
-                setNewTradeOpen(true);
-              }}
+              onClick={() => openNewTrade(null)}
             >
               + New Trade
             </button>
@@ -239,8 +260,12 @@ export default function App() {
       {newTradeOpen && (
         <NewTradeModal
           defaultDate={newTradeDefaultDate}
-          onSave={handleCreateTrade}
-          onClose={() => setNewTradeOpen(false)}
+          initialTrade={editingTrade}
+          onSave={handleSaveTrade}
+          onClose={() => {
+            setNewTradeOpen(false);
+            setEditingTrade(null);
+          }}
         />
       )}
 
@@ -248,6 +273,8 @@ export default function App() {
         <TradeDetailsModal
           trade={selectedTrade}
           onCloseResult={handleCloseTrade}
+          onDelete={handleDeleteTrade}
+          onEdit={handleEditTrade}
           onClose={() => setSelectedTrade(null)}
         />
       )}

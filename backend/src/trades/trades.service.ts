@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { Trade } from './trade.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
+import { UpdateTradeDto } from './dto/update-trade.dto';
 import { CloseTradeDto } from './dto/close-trade.dto';
 
 /**
@@ -49,6 +50,38 @@ export class TradesService {
       resultLocked: false,
     });
     return this.trades.save(trade);
+  }
+
+  /**
+   * Updates the editable fields of a trade. Never touches the result
+   * (pnlAmount, resultNote, status, resultLocked) - those stay as-is,
+   * even for closed trades whose result is locked.
+   */
+  async update(id: number, dto: UpdateTradeDto): Promise<Trade> {
+    const trade = await this.trades.findOneBy({ id });
+    if (!trade) {
+      throw new NotFoundException(`Trade ${id} not found`);
+    }
+
+    trade.date = dto.date;
+    trade.timeTaken = dto.timeTaken;
+    trade.currencyPair = dto.currencyPair;
+    trade.direction = dto.direction;
+    trade.lotSize = dto.lotSize;
+    trade.riskRewardRatio = dto.riskRewardRatio;
+    trade.reason = dto.reason;
+
+    return this.trades.save(trade);
+  }
+
+  /** Permanently deletes a trade from the database. */
+  async remove(id: number): Promise<{ id: number }> {
+    const trade = await this.trades.findOneBy({ id });
+    if (!trade) {
+      throw new NotFoundException(`Trade ${id} not found`);
+    }
+    await this.trades.remove(trade);
+    return { id };
   }
 
   /**

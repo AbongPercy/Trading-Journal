@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
+import { UpdateTradeDto } from './dto/update-trade.dto';
 import { CloseTradeDto } from './dto/close-trade.dto';
 
 /**
@@ -50,6 +52,18 @@ export class TradesController {
   @Patch(':id/close')
   close(@Param('id', ParseIntPipe) id: number, @Body() dto: CloseTradeDto) {
     return this.tradesService.close(id, dto);
+  }
+
+  // PATCH /api/trades/:id  (edits the trade details, never the result)
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTradeDto) {
+    return this.tradesService.update(id, dto);
+  }
+
+  // DELETE /api/trades/:id
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.tradesService.remove(id);
   }
 }
 

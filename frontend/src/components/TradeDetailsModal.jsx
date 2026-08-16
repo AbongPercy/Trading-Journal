@@ -10,11 +10,12 @@ import ConfirmDialog from './ConfirmDialog.jsx';
  * - If the trade is CLOSED: just shows the saved result. No edit controls,
  *   since the result can never be changed.
  */
-export default function TradeDetailsModal({ trade, onCloseResult, onClose }) {
+export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEdit, onClose }) {
   const [pnlAmount, setPnlAmount] = useState('');
   const [resultNote, setResultNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState('');
 
   const isOpen = trade.status === 'open';
@@ -43,6 +44,20 @@ export default function TradeDetailsModal({ trade, onCloseResult, onClose }) {
       setError(e.message);
       setSaving(false);
       setConfirming(false);
+    }
+  }
+
+  // Only called after the user confirms the delete dialog
+  async function confirmDelete() {
+    setSaving(true);
+    setError('');
+    try {
+      await onDelete(trade.id);
+      // App closes this modal and refreshes the calendar
+    } catch (e) {
+      setError(e.message);
+      setSaving(false);
+      setConfirmingDelete(false);
     }
   }
 
@@ -92,6 +107,8 @@ export default function TradeDetailsModal({ trade, onCloseResult, onClose }) {
             {error && <p className="form-error">{error}</p>}
 
             <div className="modal-actions">
+              <button className="btn danger" onClick={() => setConfirmingDelete(true)} disabled={saving}>Delete</button>
+              <button className="btn" onClick={onEdit} disabled={saving}>Edit</button>
               <button className="btn" onClick={onClose} disabled={saving}>Cancel</button>
               <button className="btn primary" onClick={openConfirm} disabled={saving}>
                 {saving ? 'Saving…' : 'Save Result'}
@@ -115,7 +132,11 @@ export default function TradeDetailsModal({ trade, onCloseResult, onClose }) {
 
             <p className="locked-note">This result is locked and can no longer be edited.</p>
 
+            {error && <p className="form-error">{error}</p>}
+
             <div className="modal-actions">
+              <button className="btn danger" onClick={() => setConfirmingDelete(true)}>Delete</button>
+              <button className="btn" onClick={onEdit}>Edit</button>
               <button className="btn primary" onClick={onClose}>Close</button>
             </div>
           </>
@@ -127,6 +148,16 @@ export default function TradeDetailsModal({ trade, onCloseResult, onClose }) {
             message="Cross check before you save because it can't be edited"
             onConfirm={saveResult}
             onCancel={() => setConfirming(false)}
+          />
+        )}
+
+        {/* Confirmation shown right before deleting the trade forever */}
+        {confirmingDelete && (
+          <ConfirmDialog
+            message="Delete this trade permanently? This cannot be undone."
+            confirmLabel="Yes, Delete"
+            onConfirm={confirmDelete}
+            onCancel={() => setConfirmingDelete(false)}
           />
         )}
       </div>
