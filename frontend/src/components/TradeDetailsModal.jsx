@@ -10,7 +10,7 @@ import ConfirmDialog from './ConfirmDialog.jsx';
  * - If the trade is CLOSED: just shows the saved result. No edit controls,
  *   since the result can never be changed.
  */
-export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEdit, onClose }) {
+export default function TradeDetailsModal({ trade, onCloseResult, onHide, onEdit, onClose }) {
   const [pnlAmount, setPnlAmount] = useState('');
   const [resultNote, setResultNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -47,12 +47,12 @@ export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEd
     }
   }
 
-  // Only called after the user confirms the delete dialog
-  async function confirmDelete() {
+  // Only called after the user confirms the hide dialog
+  async function confirmHide() {
     setSaving(true);
     setError('');
     try {
-      await onDelete(trade.id);
+      await onHide(trade.id);
       // App closes this modal and refreshes the calendar
     } catch (e) {
       setError(e.message);
@@ -107,7 +107,7 @@ export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEd
             {error && <p className="form-error">{error}</p>}
 
             <div className="modal-actions">
-              <button className="btn danger" onClick={() => setConfirmingDelete(true)} disabled={saving}>Delete</button>
+              <button className="btn danger" onClick={() => setConfirmingDelete(true)} disabled={saving}>Hide</button>
               <button className="btn" onClick={onEdit} disabled={saving}>Edit</button>
               <button className="btn" onClick={onClose} disabled={saving}>Cancel</button>
               <button className="btn primary" onClick={openConfirm} disabled={saving}>
@@ -135,7 +135,7 @@ export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEd
             {error && <p className="form-error">{error}</p>}
 
             <div className="modal-actions">
-              <button className="btn danger" onClick={() => setConfirmingDelete(true)}>Delete</button>
+              <button className="btn danger" onClick={() => setConfirmingDelete(true)}>Hide</button>
               <button className="btn" onClick={onEdit}>Edit</button>
               <button className="btn primary" onClick={onClose}>Close</button>
             </div>
@@ -151,12 +151,12 @@ export default function TradeDetailsModal({ trade, onCloseResult, onDelete, onEd
           />
         )}
 
-        {/* Confirmation shown right before deleting the trade forever */}
+        {/* Confirmation shown right before hiding the trade */}
         {confirmingDelete && (
           <ConfirmDialog
-            message="Delete this trade permanently? This cannot be undone."
-            confirmLabel="Yes, Delete"
-            onConfirm={confirmDelete}
+            message="Hide this trade? It will no longer appear in your calendar or stats."
+            confirmLabel="Yes, Hide"
+            onConfirm={confirmHide}
             onCancel={() => setConfirmingDelete(false)}
           />
         )}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Calendar from './components/Calendar.jsx';
-import MonthStats from './components/MonthStats.jsx';
+import MonthStats, { TopStats } from './components/MonthStats.jsx';
 import YearDashboard from './components/YearDashboard.jsx';
 import NewTradeModal from './components/NewTradeModal.jsx';
 import TradeDetailsModal from './components/TradeDetailsModal.jsx';
@@ -11,7 +11,7 @@ import {
   fetchYearStats,
   createTrade,
   updateTrade,
-  deleteTrade,
+  hideTrade,
   closeTrade,
 } from './api.js';
 
@@ -155,9 +155,9 @@ export default function App() {
     setNewTradeOpen(true);
   }
 
-  // Called by the details modal once the user confirmed the deletion
-  async function handleDeleteTrade(id) {
-    await deleteTrade(id); // throws if the backend rejects it
+  // Called by the details modal once the user confirmed the hide
+  async function handleHideTrade(id) {
+    await hideTrade(id); // throws if the backend rejects it
     setSelectedTrade(null);
     await refresh();
   }
@@ -211,9 +211,10 @@ export default function App() {
             </button>
           </div>
 
-          {/* Stats sit directly above the days, like the year stats sit
-              directly above the months */}
-          <MonthStats stats={stats} />
+          {/* Profit factor / best / worst sit above the other stats */}
+          <TopStats stats={stats} />
+
+          <MonthStats stats={stats} title={`${MONTH_NAMES[month - 1]} ${year}`} />
 
           {loading ? (
             <p className="hint">Loading…</p>
@@ -241,6 +242,9 @@ export default function App() {
               + New Trade
             </button>
           </div>
+
+          {/* Profit factor / best / worst sit above the other stats */}
+          <TopStats stats={yearStats} />
 
           <MonthStats stats={yearStats} title={String(year)} />
 
@@ -273,7 +277,7 @@ export default function App() {
         <TradeDetailsModal
           trade={selectedTrade}
           onCloseResult={handleCloseTrade}
-          onDelete={handleDeleteTrade}
+          onHide={handleHideTrade}
           onEdit={handleEditTrade}
           onClose={() => setSelectedTrade(null)}
         />

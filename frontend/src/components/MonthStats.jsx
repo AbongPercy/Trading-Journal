@@ -1,5 +1,34 @@
 /**
- * A row of small stat cards shown above the calendar for the month
+ * The three key metrics shown ABOVE the calendar toolbar: profit factor,
+ * best trade and worst trade. Works for both the month and year views.
+ */
+export function TopStats({ stats }) {
+  if (!stats) return null;
+
+  return (
+    <div className="stats-wrap">
+      <div className="stats-bar">
+        <Stat
+          label="Profit Factor"
+          value={stats.profitFactor === null ? '—' : Number(stats.profitFactor).toFixed(2)}
+        />
+        <Stat
+          label="Best Trade"
+          value={stats.bestTrade === null ? '—' : formatPnl(stats.bestTrade)}
+          accent={stats.bestTrade > 0 ? 'win' : 'even'}
+        />
+        <Stat
+          label="Worst Trade"
+          value={stats.worstTrade === null ? '—' : formatPnl(stats.worstTrade)}
+          accent={stats.worstTrade < 0 ? 'loss' : 'even'}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A row of small stat cards shown below the calendar toolbar for the month
  * that is currently being viewed. Also used for the Year view, where
  * a title (the year) can be passed in.
  */
@@ -15,10 +44,6 @@ export default function MonthStats({ stats, title }) {
         <Stat label="Losses" value={stats.losses} accent="loss" />
         <Stat label="Total P&L" value={formatPnl(stats.totalPnl)} accent={pnlAccent(stats.totalPnl)} />
         <Stat label="Win Rate" value={`${stats.winRate}%`} />
-        <Stat
-          label="Avg Risk:Reward"
-          value={stats.avgRiskReward === null ? '—' : `1:${stats.avgRiskReward}`}
-        />
       </div>
     </div>
   );

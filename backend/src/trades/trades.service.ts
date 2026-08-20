@@ -35,7 +35,7 @@ export class TradesService {
 
   private findBetween(start: string, end: string): Promise<Trade[]> {
     return this.trades.find({
-      where: { date: Between(start, end) },
+      where: { date: Between(start, end), hidden: false },
       order: { date: 'ASC', timeTaken: 'ASC' },
     });
   }
@@ -74,13 +74,14 @@ export class TradesService {
     return this.trades.save(trade);
   }
 
-  /** Permanently deletes a trade from the database. */
-  async remove(id: number): Promise<{ id: number }> {
+  /** Hides a trade so it no longer appears in the calendar or stats. */
+  async hide(id: number): Promise<{ id: number }> {
     const trade = await this.trades.findOneBy({ id });
     if (!trade) {
       throw new NotFoundException(`Trade ${id} not found`);
     }
-    await this.trades.remove(trade);
+    trade.hidden = true;
+    await this.trades.save(trade);
     return { id };
   }
 
@@ -124,12 +125,16 @@ export class TradesService {
   }
 
   private async statsBetween(start: string, end: string) {
-    const trades = await this.trades.find({ where: { date: Between(start, end) } });
+    const trades = await this.trades.find({ where: { date: Between(start, end), hidden: false } });
 
     let wins = 0;
     let losses = 0;
     let open = 0;
     let totalPnl = 0;
+    let totalWin = 0;
+    let totalLoss = 0;
+    let bestTrade: number | null = null;
+    let worstTrade: number | null = null;
     let rewardSum = 0;
     let rewardCount = 0;
 
@@ -138,9 +143,17 @@ export class TradesService {
         open += 1;
       } else if (trade.pnlAmount !== null) {
         totalPnl += trade.pnlAmount;
-        if (trade.pnlAmount > 0) wins += 1;
-        else if (trade.pnlAmount < 0) losses += 1;
+        if (trade.pnlAmount > 0) {
+          wins += 1;
+          totalWin += trade.pnlAmount;
+        } else if (trade.pnlAmount < 0) {
+          losses += 1;
+          totalLoss += trade.pnlAmount;
+        }
         // pnlAmount === 0 counts as break-even: neither a win nor a loss
+
+        if (bestTrade === null || trade.pnlAmount > bestTrade) bestTrade = trade.pnlAmount;
+        if (worstTrade === null || trade.pnlAmount < worstTrade) worstTrade = trade.pnlAmount;
       }
 
       // Average risk-to-reward is easy if we grab the "reward" half of the ratio
@@ -156,6 +169,11 @@ export class TradesService {
     const avgRiskReward =
       rewardCount === 0 ? null : Math.round((rewardSum / rewardCount) * 100) / 100;
 
+    // Profit factor = total winnings / total losses. null when there were
+    // no losing trades (would be infinite) or nothing to measure.
+    const profitFactor =
+      totalLoss === 0 ? null : Math.round((totalWin / Math.abs(totalLoss)) * 100) / 100;
+
     return {
       totalTrades: trades.length,
       wins,
@@ -164,6 +182,11 @@ export class TradesService {
       totalPnl: Math.round(totalPnl * 100) / 100,
       winRate,
       avgRiskReward,
+      profitFactor,
+      bestTrade:
+        bestTrade === null ? null : Math.round(bestTrade * 100) / 100,
+      worstTrade:
+        worstTrade === null ? null : Math.round(worstTrade * 100) / 100,
     };
   }
 }

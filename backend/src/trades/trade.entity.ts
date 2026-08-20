@@ -89,4 +89,9 @@ export class Trade {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  // When true, the trade is hidden from the calendar and stats but
+  // the row is never physically deleted — useful for "soft delete".
+  @Column({ type: 'boolean', default: false })
+  hidden: boolean;
 }

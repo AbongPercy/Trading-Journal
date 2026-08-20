@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -60,10 +59,10 @@ export class TradesController {
     return this.tradesService.update(id, dto);
   }
 
-  // DELETE /api/trades/:id
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.tradesService.remove(id);
+  // PATCH /api/trades/:id/hide — soft-deletes a trade
+  @Patch(':id/hide')
+  hide(@Param('id', ParseIntPipe) id: number) {
+    return this.tradesService.hide(id);
   }
 }
 

@@ -60,9 +60,9 @@ export function updateTrade(id, payload) {
   });
 }
 
-// DELETE /api/trades/:id
-export function deleteTrade(id) {
-  return request(`${BASE}/${id}`, { method: 'DELETE' });
+// PATCH /api/trades/:id/hide — soft-delete
+export function hideTrade(id) {
+  return request(`${BASE}/${id}/hide`, { method: 'PATCH' });
 }
 
 // PATCH /api/trades/:id/close
