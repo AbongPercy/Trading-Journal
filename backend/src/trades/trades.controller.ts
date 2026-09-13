@@ -7,16 +7,19 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { CloseTradeDto } from './dto/close-trade.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * REST endpoints for trades. All are under /api/trades because of the
- * global "api" prefix set in main.ts.
+ * global "api" prefix set in main.ts. A valid JWT is required.
  */
+@UseGuards(JwtAuthGuard)
 @Controller('trades')
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}

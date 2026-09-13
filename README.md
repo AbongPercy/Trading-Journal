@@ -52,9 +52,11 @@ C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe
    DB_USER=root
    DB_PASSWORD=your_root_password
    DB_NAME=trade_journal
+   JWT_SECRET=some-long-random-string
    ```
 
-   (`backend/.env` is already filled in with your credentials — just check it.)
+   (`backend/.env` is already filled in with your credentials — just check it.
+   `JWT_SECRET` signs login tokens; a safe default is already appended there.)
 
 ## 3. Create the database
 
@@ -86,11 +88,12 @@ Two ways — they do the same thing:
 
   Undo with `npm run migration:revert`.
 
-The migration in `backend/src/migrations/` creates the `trades` table.
-Look inside it to see the table structure, or describe it:
+The migrations in `backend/src/migrations/` create the `trades` and `users`
+tables. Look inside them to see the table structures, or describe them:
 
 ```sql
 DESCRIBE trades;
+DESCRIBE users;
 ```
 
 ---
@@ -120,6 +123,9 @@ npm run dev
 ```
 
 Open **http://localhost:5173** in your browser.
+
+**First time?** You'll see a sign-up/login screen. Create an account and
+you're in — there are no roles, every account has full access.
 
 In development the frontend runs on port 5173 and forwards every `/api` request
 to the backend on port 3000 (see `frontend/vite.config.js`), so the browser

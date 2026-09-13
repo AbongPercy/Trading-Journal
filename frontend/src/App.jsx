@@ -4,6 +4,8 @@ import MonthStats, { TopStats } from './components/MonthStats.jsx';
 import YearDashboard from './components/YearDashboard.jsx';
 import NewTradeModal from './components/NewTradeModal.jsx';
 import TradeDetailsModal from './components/TradeDetailsModal.jsx';
+import LoginPage from './components/LoginPage.jsx';
+import RegisterPage from './components/RegisterPage.jsx';
 import {
   fetchTrades,
   fetchStats,
@@ -13,6 +15,9 @@ import {
   updateTrade,
   hideTrade,
   closeTrade,
+  fetchMe,
+  getToken,
+  setToken,
 } from './api.js';
 
 const MONTH_NAMES = [
@@ -22,7 +27,14 @@ const MONTH_NAMES = [
 
 export default function App() {
   const today = new Date();
-  const [view, setView] = useState('month'); // 'month' or 'year'
+
+  // ---------- Auth state ----------
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+
+  // ---------- App view state ----------
+  const [view, setView] = useState('month'); // 'month' | 'year'
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
 
@@ -43,14 +55,53 @@ export default function App() {
   const [editingTrade, setEditingTrade] = useState(null);
   const [selectedTrade, setSelectedTrade] = useState(null);
 
+  // Restore a logged-in session from the token when the page loads
+  useEffect(() => {
+    (async () => {
+      const token = getToken();
+      if (!token) {
+        setAuthChecked(true);
+        return;
+      }
+      try {
+        const me = await fetchMe();
+        setUser(me);
+      } catch {
+        setToken(null); // expired or invalid token
+      } finally {
+        setAuthChecked(true);
+      }
+    })();
+  }, []);
+
+  function handleLogin(accessToken, loggedInUser) {
+    setToken(accessToken);
+    setUser(loggedInUser);
+    setView('month');
+  }
+
+  function handleRegister(accessToken, createdUser) {
+    setToken(accessToken);
+    setUser(createdUser);
+    setView('month');
+  }
+
+  function handleLogout() {
+    setToken(null);
+    setUser(null);
+    setView('month');
+  }
+
   // "2026-08" - the month string used by the Month view API calls
   const monthKey = useMemo(
     () => `${year}-${String(month).padStart(2, '0')}`,
     [year, month],
   );
 
-  // Load whichever data the current view needs, whenever it changes
+  // Load whichever data the current view needs, whenever it changes.
+  // Skipped when the user is not logged in (data is behind auth).
   useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -83,7 +134,7 @@ export default function App() {
     }
     load();
     return () => { cancelled = true; };
-  }, [view, monthKey, year]);
+  }, [user, view, monthKey, year]);
 
   // Reload BOTH views' data (used after creating/closing a trade)
   async function refresh() {
@@ -169,6 +220,31 @@ export default function App() {
     await refresh();
   }
 
+  // ---------- Gate: still checking the stored session ----------
+  if (!authChecked) {
+    return (
+      <div className="app">
+        <p className="hint">Loading…</p>
+      </div>
+    );
+  }
+
+  // ---------- Gate: not logged in -> show login / register ----------
+  if (!user) {
+    return authMode === 'register' ? (
+      <RegisterPage
+        onRegister={handleRegister}
+        onShowLogin={() => setAuthMode('login')}
+      />
+    ) : (
+      <LoginPage
+        onLogin={handleLogin}
+        onShowRegister={() => setAuthMode('register')}
+      />
+    );
+  }
+
+  // ---------- Gate: logged in -> the app ----------
   return (
     <div className="app">
       <header className="app-header">
@@ -189,77 +265,81 @@ export default function App() {
             </button>
           </div>
         </div>
-        <Legend />
+        <div className="app-header-right">
+          <Legend />
+          <span className="user-chip">{user.username}</span>
+          <button className="btn" onClick={handleLogout}>Log out</button>
+        </div>
       </header>
 
-      {error && <div className="error-banner">{error}</div>}
+          {error && <div className="error-banner">{error}</div>}
 
-      {view === 'month' ? (
-        <>
-          <div className="calendar-toolbar">
-            <button className="btn" onClick={() => changeMonth(-1)}>&#8592; Prev</button>
-            <h2 className="month-title">
-              {MONTH_NAMES[month - 1]} {year}
-            </h2>
-            <button className="btn" onClick={() => changeMonth(1)}>Next &#8594;</button>
-            <button className="btn" onClick={goToToday}>Today</button>
-            <button
-              className="btn primary new-trade-btn"
-              onClick={() => openNewTrade(null)}
-            >
-              + New Trade
-            </button>
-          </div>
+          {view === 'month' ? (
+            <>
+              <div className="calendar-toolbar">
+                <button className="btn" onClick={() => changeMonth(-1)}>&#8592; Prev</button>
+                <h2 className="month-title">
+                  {MONTH_NAMES[month - 1]} {year}
+                </h2>
+                <button className="btn" onClick={() => changeMonth(1)}>Next &#8594;</button>
+                <button className="btn" onClick={goToToday}>Today</button>
+                <button
+                  className="btn primary new-trade-btn"
+                  onClick={() => openNewTrade(null)}
+                >
+                  + New Trade
+                </button>
+              </div>
 
-          {/* Profit factor / best / worst sit above the other stats */}
-          <TopStats stats={stats} />
+              {/* Profit factor / best / worst sit above the other stats */}
+              <TopStats stats={stats} />
 
-          <MonthStats stats={stats} title={`${MONTH_NAMES[month - 1]} ${year}`} />
+              <MonthStats stats={stats} title={`${MONTH_NAMES[month - 1]} ${year}`} />
 
-          {loading ? (
-            <p className="hint">Loading…</p>
+              {loading ? (
+                <p className="hint">Loading…</p>
+              ) : (
+                <Calendar
+                  year={year}
+                  month={month}
+                  trades={trades}
+                  onAddTrade={openNewTrade}
+                  onSelectTrade={setSelectedTrade}
+                />
+              )}
+            </>
           ) : (
-            <Calendar
-              year={year}
-              month={month}
-              trades={trades}
-              onAddTrade={openNewTrade}
-              onSelectTrade={setSelectedTrade}
-            />
+            <>
+              <div className="calendar-toolbar">
+                <button className="btn" onClick={() => setYear((y) => y - 1)}>&#8592; Prev Year</button>
+                <h2 className="month-title">{year}</h2>
+                <button className="btn" onClick={() => setYear((y) => y + 1)}>Next Year &#8594;</button>
+                <button className="btn" onClick={goToToday}>Today</button>
+                <button
+                  className="btn primary new-trade-btn"
+                  onClick={() => openNewTrade(null)}
+                >
+                  + New Trade
+                </button>
+              </div>
+
+              {/* Profit factor / best / worst sit above the other stats */}
+              <TopStats stats={yearStats} />
+
+              <MonthStats stats={yearStats} title={String(year)} />
+
+              {loading ? (
+                <p className="hint">Loading…</p>
+              ) : (
+                <YearDashboard
+                  year={year}
+                  trades={yearTrades}
+                  onOpenMonth={openMonth}
+                  onSelectTrade={setSelectedTrade}
+                />
+              )}
+            </>
           )}
-        </>
-      ) : (
-        <>
-          <div className="calendar-toolbar">
-            <button className="btn" onClick={() => setYear((y) => y - 1)}>&#8592; Prev Year</button>
-            <h2 className="month-title">{year}</h2>
-            <button className="btn" onClick={() => setYear((y) => y + 1)}>Next Year &#8594;</button>
-            <button className="btn" onClick={goToToday}>Today</button>
-            <button
-              className="btn primary new-trade-btn"
-              onClick={() => openNewTrade(null)}
-            >
-              + New Trade
-            </button>
-          </div>
-
-          {/* Profit factor / best / worst sit above the other stats */}
-          <TopStats stats={yearStats} />
-
-          <MonthStats stats={yearStats} title={String(year)} />
-
-          {loading ? (
-            <p className="hint">Loading…</p>
-          ) : (
-            <YearDashboard
-              year={year}
-              trades={yearTrades}
-              onOpenMonth={openMonth}
-              onSelectTrade={setSelectedTrade}
-            />
-          )}
-        </>
-      )}
 
       {newTradeOpen && (
         <NewTradeModal
